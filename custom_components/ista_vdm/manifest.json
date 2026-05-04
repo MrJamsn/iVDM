@@ -1,0 +1,12 @@
+{
+  "domain": "ista_vdm",
+  "name": "ista VDM (Verbrauchsdatenmonitoring)",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/DEIN_USER/ista_vdm",
+  "issue_tracker": "https://github.com/DEIN_USER/ista_vdm/issues",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@DEIN_USER"],
+  "iot_class": "cloud_polling"
+}
