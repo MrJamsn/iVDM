@@ -1,5 +1,5 @@
 {
-  "domain": "ista_vdm",
+  "domain": "ivdm",
   "name": "ista VDM (Verbrauchsdatenmonitoring)",
   "version": "1.0.0",
   "config_flow": true,

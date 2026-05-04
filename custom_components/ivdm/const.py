@@ -1,4 +1,4 @@
-DOMAIN = "ista_vdm"
+DOMAIN = "ivdm"
 
 KEYCLOAK_TOKEN_URL = (
     "https://login.ista.com/realms/vdm/protocol/openid-connect/token"

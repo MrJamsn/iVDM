@@ -19,4 +19,4 @@ HACS-kompatible Custom Integration für das [ista Verbrauchsdatenmonitoring](htt
 5. E-Mail & Passwort eingeben
 
 ## Manuelle Installation
-Ordner `custom_components/ista_vdm/` in dein HA-Konfigurationsverzeichnis kopieren.
+Ordner `custom_components/ivdm/` in dein HA-Konfigurationsverzeichnis kopieren.

@@ -64,7 +64,7 @@ class IstaVdmSensor(CoordinatorEntity, SensorEntity):
         period_label = "Aktuell" if period == "current" else "Vormonat"
         self._attr_name = f"ista VDM {name} {period_label}"
         self._attr_unique_id = (
-            f"ista_vdm_{coordinator.flat_id}_{obis_code}_{period}"
+            f"ivdm_{coordinator.flat_id}_{obis_code}_{period}"
         )
         self._attr_native_unit_of_measurement = UNIT_MAP.get(unit, unit)
         self._attr_device_class = DEVICE_CLASS_MAP.get(device_class)
