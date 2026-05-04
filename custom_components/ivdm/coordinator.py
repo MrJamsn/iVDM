@@ -6,28 +6,20 @@ from datetime import timedelta, date
 import aiohttp
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import (
-    DOMAIN,
-    KEYCLOAK_TOKEN_URL,
-    KEYCLOAK_CLIENT_ID,
-    API_BASE_URL,
-    OBIS_CODES,
-    SCAN_INTERVAL_HOURS,
-)
+from .const import DOMAIN, API_BASE_URL, OBIS_CODES, SCAN_INTERVAL_HOURS
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class IstaVdmCoordinator(DataUpdateCoordinator):
-    """Koordinator fuer ista VDM Verbrauchsdaten."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        username: str,
-        password: str,
+        oauth_session: OAuth2Session,
         flat_id: str,
     ) -> None:
         super().__init__(
@@ -36,49 +28,21 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(hours=SCAN_INTERVAL_HOURS),
         )
-        self._username = username
-        self._password = password
+        self._oauth_session = oauth_session
         self.flat_id = flat_id
-        self._access_token: str | None = None
 
-    # ------------------------------------------------------------------
-    # Auth
-    # ------------------------------------------------------------------
-    async def _fetch_token(self, session: aiohttp.ClientSession) -> str:
-        """Keycloak Resource-Owner-Password-Credentials Flow."""
-        payload = {
-            "client_id": KEYCLOAK_CLIENT_ID,
-            "username": self._username,
-            "password": self._password,
-            "grant_type": "password",
-            "scope": "openid",
-        }
-        async with session.post(KEYCLOAK_TOKEN_URL, data=payload) as resp:
-            if resp.status != 200:
-                text = await resp.text()
-                raise UpdateFailed(f"Login fehlgeschlagen ({resp.status}): {text}")
-            data = await resp.json()
-            return data["access_token"]
-
-    # ------------------------------------------------------------------
-    # Data fetch
-    # ------------------------------------------------------------------
     async def _async_update_data(self) -> dict:
-        """Verbrauchsdaten fuer den aktuellen und den Vormonat holen."""
+        await self._oauth_session.async_ensure_token_valid()
+        headers = {"Authorization": f"Bearer {self._oauth_session.token['access_token']}"}
+
         today = date.today()
-        # Aktueller Monat
         current_from = today.replace(day=1)
         next_month = (current_from + timedelta(days=32)).replace(day=1)
         current_to = next_month - timedelta(days=1)
-
-        # Vormonat
         prev_to = current_from - timedelta(days=1)
         prev_from = prev_to.replace(day=1)
 
         async with aiohttp.ClientSession() as session:
-            self._access_token = await self._fetch_token(session)
-            headers = {"Authorization": f"Bearer {self._access_token}"}
-
             async def fetch_month(from_d: date, to_d: date) -> list:
                 url = (
                     f"{API_BASE_URL}/measurement-records"
@@ -103,12 +67,8 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
             "month": current_from.strftime("%B %Y"),
         }
 
-    # ------------------------------------------------------------------
-    # Parser
-    # ------------------------------------------------------------------
     @staticmethod
     def _parse(records: list | dict) -> dict:
-        """Gibt {obis_code: value} zurueck."""
         result: dict = {}
         if isinstance(records, dict):
             records = records.get("data", [])

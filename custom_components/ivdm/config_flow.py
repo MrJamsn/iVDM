@@ -1,98 +1,53 @@
 from __future__ import annotations
 
 import logging
-import aiohttp
-import voluptuous as vol
 
-from homeassistant import config_entries
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+import aiohttp
+
+from homeassistant.helpers import config_entry_oauth2_flow
+
+from .const import DOMAIN, CONF_FLAT_ID, API_BASE_URL
 
 _LOGGER = logging.getLogger(__name__)
 
-from .const import (
-    DOMAIN,
-    CONF_FLAT_ID,
-    KEYCLOAK_TOKEN_URL,
-    KEYCLOAK_CLIENT_ID,
-    API_BASE_URL,
-)
 
+class IstaVdmFlowHandler(
+    config_entry_oauth2_flow.AbstractOAuth2FlowHandler,
+    domain=DOMAIN,
+):
+    DOMAIN = DOMAIN
 
-class IstaVdmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Konfigurationsassistent fuer ista VDM."""
+    @property
+    def logger(self) -> logging.Logger:
+        return _LOGGER
 
-    VERSION = 1
-
-    async def async_step_user(self, user_input=None):
-        errors = {}
-
-        if user_input is not None:
-            username = user_input[CONF_USERNAME]
-            password = user_input[CONF_PASSWORD]
-            flat_id, error = await self._validate_credentials(username, password)
-            if error:
-                errors["base"] = error
-            else:
-                await self.async_set_unique_id(flat_id)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title=f"ista VDM ({flat_id})",
-                    data={
-                        CONF_USERNAME: username,
-                        CONF_PASSWORD: password,
-                        CONF_FLAT_ID: flat_id,
-                    },
-                )
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME): str,
-                    vol.Required(CONF_PASSWORD): str,
-                }
-            ),
-            errors=errors,
-        )
-
-    async def _validate_credentials(self, username: str, password: str):
-        """Login testen und Flat-ID ermitteln."""
+    async def async_oauth_create_entry(self, data: dict) -> dict:
+        token = data["token"]["access_token"]
         try:
             async with aiohttp.ClientSession() as session:
-                # Token holen
-                payload = {
-                    "client_id": KEYCLOAK_CLIENT_ID,
-                    "username": username,
-                    "password": password,
-                    "grant_type": "password",
-                    "scope": "openid",
-                }
-                async with session.post(KEYCLOAK_TOKEN_URL, data=payload) as resp:
-                    if resp.status != 200:
-                        text = await resp.text()
-                        _LOGGER.error("Token request failed (HTTP %s): %s", resp.status, text)
-                        return None, "invalid_auth"
-                    token_data = await resp.json()
-                    token = token_data["access_token"]
-
-                # /api/me aufrufen -> Flat-ID ermitteln
                 headers = {"Authorization": f"Bearer {token}"}
                 async with session.get(f"{API_BASE_URL}/me", headers=headers) as resp:
                     if resp.status != 200:
-                        return None, "cannot_connect"
+                        text = await resp.text()
+                        _LOGGER.error("/api/me failed (HTTP %s): %s", resp.status, text)
+                        return self.async_abort(reason="cannot_connect")
                     me_data = await resp.json()
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Connection error: %s", err)
+            return self.async_abort(reason="cannot_connect")
 
-                flat_id = self._extract_flat_id(me_data)
-                if not flat_id:
-                    return None, "no_flat_found"
-                return str(flat_id), None
+        flat_id = self._extract_flat_id(me_data)
+        if not flat_id:
+            _LOGGER.error("No flat_id found in /api/me response: %s", me_data)
+            return self.async_abort(reason="no_flat_found")
 
-        except aiohttp.ClientError:
-            return None, "cannot_connect"
+        await self.async_set_unique_id(str(flat_id))
+        self._abort_if_unique_id_configured()
+        data[CONF_FLAT_ID] = str(flat_id)
+        return self.async_create_entry(title=f"ista VDM ({flat_id})", data=data)
 
     @staticmethod
     def _extract_flat_id(me_data: dict) -> str | None:
-        """Flat-ID aus /api/me Response extrahieren."""
         for key in ("flat_id", "flatId", "flat"):
             if key in me_data:
                 val = me_data[key]

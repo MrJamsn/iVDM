@@ -1,5 +1,8 @@
 DOMAIN = "ivdm"
 
+KEYCLOAK_AUTH_URL = (
+    "https://login.ista.com/realms/vdm/protocol/openid-connect/auth"
+)
 KEYCLOAK_TOKEN_URL = (
     "https://login.ista.com/realms/vdm/protocol/openid-connect/token"
 )
