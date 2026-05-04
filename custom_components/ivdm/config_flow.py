@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     DOMAIN,
@@ -66,6 +69,8 @@ class IstaVdmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
                 async with session.post(KEYCLOAK_TOKEN_URL, data=payload) as resp:
                     if resp.status != 200:
+                        text = await resp.text()
+                        _LOGGER.error("Token request failed (HTTP %s): %s", resp.status, text)
                         return None, "invalid_auth"
                     token_data = await resp.json()
                     token = token_data["access_token"]
