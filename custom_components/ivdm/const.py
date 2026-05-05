@@ -7,9 +7,11 @@ KEYCLOAK_TOKEN_URL = (
     "https://login.ista.com/realms/vdm/protocol/openid-connect/token"
 )
 KEYCLOAK_CLIENT_ID = "vdm-frontend"
+KEYCLOAK_REDIRECT_URI = "https://ista-vdm.at/"
 API_BASE_URL = "https://ista-vdm.at/api"
 
 CONF_FLAT_ID = "flat_id"
+CONF_REFRESH_TOKEN = "refresh_token"
 
 SCAN_INTERVAL_HOURS = 24
 

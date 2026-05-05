@@ -1,15 +1,22 @@
 {
   "config": {
     "step": {
-      "pick_implementation": {
-        "title": "ista VDM Login"
+      "user": {
+        "title": "ista VDM Login",
+        "description": "Enter your ista VDM credentials.",
+        "data": {
+          "username": "Email / Username",
+          "password": "Password"
+        }
       }
     },
-    "abort": {
-      "already_configured": "ista VDM is already configured.",
+    "error": {
+      "invalid_auth": "Invalid username or password.",
       "cannot_connect": "Could not connect to ista server.",
-      "no_flat_found": "No flat found in your account.",
-      "oauth_error": "Authentication error. Please try again."
+      "no_flat_found": "No flat found in your account."
+    },
+    "abort": {
+      "already_configured": "ista VDM is already configured."
     }
   }
 }

@@ -6,10 +6,16 @@ from datetime import timedelta, date
 import aiohttp
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, API_BASE_URL, OBIS_CODES, SCAN_INTERVAL_HOURS
+from .const import (
+    DOMAIN,
+    KEYCLOAK_TOKEN_URL,
+    KEYCLOAK_CLIENT_ID,
+    API_BASE_URL,
+    OBIS_CODES,
+    SCAN_INTERVAL_HOURS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +25,7 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
-        oauth_session: OAuth2Session,
+        refresh_token: str,
         flat_id: str,
     ) -> None:
         super().__init__(
@@ -28,13 +34,26 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(hours=SCAN_INTERVAL_HOURS),
         )
-        self._oauth_session = oauth_session
+        self._refresh_token = refresh_token
         self.flat_id = flat_id
 
-    async def _async_update_data(self) -> dict:
-        await self._oauth_session.async_ensure_token_valid()
-        headers = {"Authorization": f"Bearer {self._oauth_session.token['access_token']}"}
+    async def _get_access_token(self, session: aiohttp.ClientSession) -> str:
+        async with session.post(
+            KEYCLOAK_TOKEN_URL,
+            data={
+                "client_id": KEYCLOAK_CLIENT_ID,
+                "grant_type": "refresh_token",
+                "refresh_token": self._refresh_token,
+            },
+        ) as resp:
+            if resp.status != 200:
+                text = await resp.text()
+                raise UpdateFailed(f"Token refresh failed ({resp.status}): {text}")
+            tokens = await resp.json()
+            self._refresh_token = tokens.get("refresh_token", self._refresh_token)
+            return tokens["access_token"]
 
+    async def _async_update_data(self) -> dict:
         today = date.today()
         current_from = today.replace(day=1)
         next_month = (current_from + timedelta(days=32)).replace(day=1)
@@ -43,6 +62,9 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
         prev_from = prev_to.replace(day=1)
 
         async with aiohttp.ClientSession() as session:
+            access_token = await self._get_access_token(session)
+            headers = {"Authorization": f"Bearer {access_token}"}
+
             async def fetch_month(from_d: date, to_d: date) -> list:
                 url = (
                     f"{API_BASE_URL}/measurement-records"

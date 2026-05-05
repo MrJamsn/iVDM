@@ -1,15 +1,22 @@
 {
   "config": {
     "step": {
-      "pick_implementation": {
-        "title": "ista VDM Login"
+      "user": {
+        "title": "ista VDM Login",
+        "description": "Bitte gib deine ista VDM Zugangsdaten ein.",
+        "data": {
+          "username": "E-Mail / Benutzername",
+          "password": "Passwort"
+        }
       }
     },
-    "abort": {
-      "already_configured": "ista VDM ist bereits konfiguriert.",
+    "error": {
+      "invalid_auth": "Ungueltige Zugangsdaten.",
       "cannot_connect": "Verbindung fehlgeschlagen.",
-      "no_flat_found": "Keine Wohnung gefunden. Bitte pruefe dein Konto.",
-      "oauth_error": "Fehler bei der Anmeldung. Bitte versuche es erneut."
+      "no_flat_found": "Keine Wohnung gefunden. Bitte pruefe dein Konto."
+    },
+    "abort": {
+      "already_configured": "ista VDM ist bereits konfiguriert."
     }
   }
 }
