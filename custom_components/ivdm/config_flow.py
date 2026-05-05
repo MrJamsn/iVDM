@@ -153,20 +153,12 @@ class IstaVdmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def _extract_flat_id(me_data: dict) -> str | None:
-        for key in ("flat_id", "flatId", "flat"):
-            if key in me_data:
-                val = me_data[key]
-                if isinstance(val, dict):
-                    return val.get("id")
-                return val
         data = me_data.get("data", {})
-        if isinstance(data, dict):
-            attrs = data.get("attributes", {})
-            for key in ("flat_id", "flatId"):
-                if key in attrs:
-                    return attrs[key]
-            rels = data.get("relationships", {})
-            flat_rel = rels.get("flat") or rels.get("flats")
-            if flat_rel:
-                return flat_rel.get("data", {}).get("id")
+        if not isinstance(data, dict):
+            return None
+        if "flat_id" in data:
+            return data["flat_id"]
+        tenancy = data.get("mainTenancy", {})
+        if isinstance(tenancy, dict) and "flat_id" in tenancy:
+            return tenancy["flat_id"]
         return None
