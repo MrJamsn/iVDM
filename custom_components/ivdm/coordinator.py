@@ -83,6 +83,9 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
             current_data = await fetch_month(current_from, current_to)
             prev_data = await fetch_month(prev_from, prev_to)
 
+        _LOGGER.debug("current raw: %s", current_data)
+        _LOGGER.debug("previous raw: %s", prev_data)
+
         return {
             "current": self._parse(current_data),
             "previous": self._parse(prev_data),
