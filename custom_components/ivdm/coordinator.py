@@ -74,6 +74,7 @@ class IstaVdmCoordinator(DataUpdateCoordinator):
                     f"&filter[flat]={self.flat_id}"
                     f"&resolution=month"
                 )
+                _LOGGER.warning("Fetching: %s", url)
                 async with session.get(url, headers=headers) as resp:
                     if resp.status != 200:
                         text = await resp.text()
