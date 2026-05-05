@@ -135,6 +135,7 @@ class IstaVdmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         return {"error": "cannot_connect"}
                     me_data = await resp.json()
 
+                _LOGGER.debug("/api/me response: %s", me_data)
                 flat_id = self._extract_flat_id(me_data)
                 if not flat_id:
                     _LOGGER.error("No flat_id in /api/me response: %s", me_data)
